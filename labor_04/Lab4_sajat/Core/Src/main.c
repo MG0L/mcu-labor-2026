@@ -2,15 +2,9 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Snake jatek SSD1306 OLED kijelzon, 3 gombbal
+
   ******************************************************************************
-  * Gombok:
-  *   1-es gomb (PE2) : elore (jobbra)
-  *   2-es gomb (PE3) : lefele
-  *   3-as gomb (PE6) : felfele
-  *
-  * A palya szelei "atjarhatok" (ha kimesz jobbra, balrol jossz vissza,
-  * felul/alul ugyanigy). Jatek vege: ha a kigyo sajat magaba harap.
+
   *
   * @attention
   *
@@ -56,25 +50,21 @@ typedef enum
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-/* Gomb hozzarendeles - ha a sorrend mas, csak itt kell atirni */
-#define BTN1_PORT   GPIOE           /* elore / jobbra */
+#define BTN1_PORT   GPIOE
 #define BTN1_PIN    GPIO_PIN_2
-#define BTN2_PORT   GPIOE           /* le */
+#define BTN2_PORT   GPIOE
 #define BTN2_PIN    GPIO_PIN_3
-#define BTN3_PORT   GPIOE           /* fel */
+#define BTN3_PORT   GPIOE
 #define BTN3_PIN    GPIO_PIN_6
 
-/* Lenyomott gomb szintje. A peldaprogramban aktiv alacsony (RESET).
-   Ha nalad forditva mukodik, ird at GPIO_PIN_SET-re. */
+
 #define BTN_PRESSED_LEVEL   GPIO_PIN_RESET
 
-/* Racs: 4x4 pixeles cellak -> 32 x 16 cella a 128x64-es kijelzon */
 #define CELL_SIZE       4u
 #define GRID_W          (OLED_WIDTH  / CELL_SIZE)
 #define GRID_H          (OLED_HEIGHT / CELL_SIZE)
 #define SNAKE_MAX_LEN   (GRID_W * GRID_H)
 
-/* Sebesseg (ms / lepes) */
 #define SPEED_START_MS  160u
 #define SPEED_MIN_MS    70u
 #define SPEED_STEP_MS   5u
@@ -128,7 +118,6 @@ static void MX_I2C2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-/* Gombok beolvasasa, pressed[i] = 1 ha az adott gombot most nyomtak le (el) */
 static void Buttons_Read(uint8_t pressed[3])
 {
     uint8_t i;
@@ -144,7 +133,6 @@ static void Buttons_Read(uint8_t pressed[3])
         previous_button_state[i] = current_button_state[i];
     }
 
-    /* Visszajelzes a Nucleo LED-jein: vilagit, amig a gomb le van nyomva */
     HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin,
         (BTN_PRESSED_LEVEL == current_button_state[0]) ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin,
@@ -153,7 +141,6 @@ static void Buttons_Read(uint8_t pressed[3])
         (BTN_PRESSED_LEVEL == current_button_state[2]) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
-/* Teli 3x3-as negyzet egy cellaba (kigyo teste) */
 static void Snake_DrawCell(uint8_t gx, uint8_t gy)
 {
     uint8_t px = gx * CELL_SIZE;
@@ -166,7 +153,6 @@ static void Snake_DrawCell(uint8_t gx, uint8_t gy)
     }
 }
 
-/* Ures keret egy cellaba (etel) */
 static void Snake_DrawFood(uint8_t gx, uint8_t gy)
 {
     uint8_t px = gx * CELL_SIZE;
@@ -189,7 +175,6 @@ static uint8_t Snake_IsOnBody(uint8_t x, uint8_t y)
     return 0u;
 }
 
-/* Uj etel lerakasa szabad helyre. 0-val ter vissza, ha nincs szabad hely (nyertel) */
 static uint8_t Snake_SpawnFood(void)
 {
     if (snake_len >= SNAKE_MAX_LEN)
@@ -223,7 +208,6 @@ static void Snake_Init(void)
     (void)Snake_SpawnFood();
 }
 
-/* Egy lepes. 0-val ter vissza, ha vege a jateknak */
 static uint8_t Snake_Step(void)
 {
     uint8_t  nx = snake_x[0];
@@ -250,7 +234,6 @@ static uint8_t Snake_Step(void)
 
     grow = ((nx == food_x) && (ny == food_y)) ? 1u : 0u;
 
-    /* Utkozes sajat magaval. Ha nem no, a farok elmozdul, azt nem nezzuk. */
     check_len = grow ? snake_len : (snake_len - 1u);
     for (i = 0; i < check_len; i++)
     {
@@ -265,7 +248,7 @@ static uint8_t Snake_Step(void)
         snake_len++;
     }
 
-    /* Test tolasa hatra, uj fej elore */
+
     for (i = snake_len - 1u; i > 0u; i--)
     {
         snake_x[i] = snake_x[i - 1u];
@@ -283,7 +266,7 @@ static uint8_t Snake_Step(void)
         }
         if (!Snake_SpawnFood())
         {
-            return 0u;  /* tele a palya - nyertel */
+            return 0u;
         }
     }
 
@@ -370,7 +353,7 @@ int main(void)
   OLED_Fill(BLACK);
   OLED_UpdateScreen();
 
-  /* Kezdo gomballapot, hogy indulaskor ne legyen "hamis" lenyomas */
+
   previous_button_state[0] = HAL_GPIO_ReadPin(BTN1_PORT, BTN1_PIN);
   previous_button_state[1] = HAL_GPIO_ReadPin(BTN2_PORT, BTN2_PIN);
   previous_button_state[2] = HAL_GPIO_ReadPin(BTN3_PORT, BTN3_PIN);
@@ -391,7 +374,7 @@ int main(void)
       case GAME_START:
           if (pressed[0] || pressed[1] || pressed[2])
           {
-              srand(HAL_GetTick());   /* a lenyomas ideje ad veletlenszeru kezdoerteket */
+              srand(HAL_GetTick());
               Snake_Init();
               Snake_Draw();
               game_state = GAME_PLAY;
@@ -399,16 +382,16 @@ int main(void)
           break;
 
       case GAME_PLAY:
-          /* Iranyvaltas - a kigyo nem fordulhat vissza sajat magaba */
-          if (pressed[0])                                  /* 1-es gomb: elore */
+
+          if (pressed[0])
           {
               next_dir = DIR_RIGHT;
           }
-          if (pressed[1] && (DIR_UP != snake_dir))         /* 2-es gomb: le */
+          if (pressed[1] && (DIR_UP != snake_dir))
           {
               next_dir = DIR_DOWN;
           }
-          if (pressed[2] && (DIR_DOWN != snake_dir))       /* 3-as gomb: fel */
+          if (pressed[2] && (DIR_DOWN != snake_dir))
           {
               next_dir = DIR_UP;
           }
@@ -432,7 +415,7 @@ int main(void)
 
       case GAME_OVER:
       default:
-          /* Kis varakozas, hogy egy veletlen gombnyomas ne inditsa rogton ujra */
+
           if (((HAL_GetTick() - game_over_tick) > 700u) &&
               (pressed[0] || pressed[1] || pressed[2]))
           {
