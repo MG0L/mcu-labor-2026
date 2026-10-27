@@ -39,5 +39,7 @@ Desktop.ini
 *.swp
 *~
 
-
+/*
+!/.gitignore
+!/labor_10/
 
